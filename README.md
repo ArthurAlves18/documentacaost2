@@ -1,0 +1,612 @@
+# documentacaost2
+documentacao st2 
+
+
+﻿Documentação da Configuração e Execução do Darkice e Icecast - st2
+
+
+Introdução
+
+
+Para manter a rádio em funcionamento são necessárias três camadas de programas open-source, cada uma responsável por uma etapa do processo.
+Primeiramente, o sinal de áudio que chega do dispositivo de áudio, através de uma entrada usb, é lido pelo alsa (pode ser pulseaudio ou qualquer outro mixer de áudio). 
+Esse sinal é então passado para a segunda camada, gerida pelo darkice.
+        O darkice é um programa open-source que tem como finalidade gerar o stream de áudio (em vários formatos, como ogg e mp3). Há a necessidade de se configurar tal programa para o seu correto funcionamento. 
+O stream gerado pelo darkice é jogado na rede pelo icecast2 ( a terceira camada), que é um servidor de stream (mídias), ou seja, ele fará o streaming de áudio. 
+O sinal refinado pelo icecast2, na rede, é então trabalhado para ser modulado pela portadora e virar um sinal de rádio, em ondas de 20KHz.
+
+
+Passo a passo de instalação
+
+
+* Instale o icecast2:
+sudo apt-get install icecast2
+
+
+* Instale o darkice:
+sudo apt-get install darkice
+
+
+* Instale o alsa:
+Sudo apt-get install alsa-base
+Sudo apt-get install alsa-tools
+Sudo apt-get install alsa-utils
+…
+Todos esses pacotes 
+alsa-base                  alsamixergui               alsaplayer-alsa            alsaplayer-daemon          alsaplayer-gtk             alsaplayer-nas             alsaplayer-text            alsa-source                alsa-tools-gui
+alsa-firmware-loaders  alsa-oss                   alsaplayer-common          alsaplayer-esd             alsaplayer-jack            alsaplayer-oss             alsaplayer-xosd            alsa-tools                 alsa-utils
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Passo a passa de configuração
+
+
+Configuração do icecast2
+
+
+
+
+É necessário acessar o arquivo icecas.xml, presente no diretório /etc/icecast2. (sudo vim icecast.xml /etc/icecast2) 
+Então é preciso configurá-lo. Sua configuração se resume a basicamente colocar o ip (nome do servidor) adequado do hostname, que no caso é localhost. Normalmente o padrão do arquivo já vem com tal nome de servidor. Além disso, é necessário colocar uma senha, que será usada para acessar o icecast2 futuramente. É recomendado que a senha do icecast2 seja a mesma do computador (host). 
+
+
+O arquivo encontrado deve ser conforme abaixo, detalhe para as senhas que exigem alteração, que estão em negrito:
+
+<icecast>
+        <!-- location and admin are two arbitrary strings that are e.g. visible
+             on the server info page of the icecast web interface
+             (server_version.xsl). -->
+        <location>Earth</location>
+        <admin>icemaster@localhost</admin>
+
+
+        <limits>
+            <clients>100</clients>
+            <sources>2</sources>
+            <threadpool>5</threadpool>
+            <queue-size>524288</queue-size>
+            <client-timeout>30</client-timeout>
+            <header-timeout>15</header-timeout>
+            <source-timeout>10</source-timeout>
+            <!-- If enabled, this will provide a burst of data when a client
+                 first connects, thereby significantly reducing the startup
+                 time for listeners that do substantial buffering. However,
+                 it also significantly increases latency between the source
+                 client and listening client.  For low-latency setups, you
+                 might want to disable this. -->
+            <burst-on-connect>1</burst-on-connect>
+            <!-- same as burst-on-connect, but this allows for being more
+                 specific on how much to burst. Most people won't need to
+                 change from the default 64k. Applies to all mountpoints  -->
+            <burst-size>65535</burst-size>
+        </limits>
+
+
+        <authentication>
+            <!-- Sources log in with username 'source' -->
+            <source-password>c0d3c8000</source-password>
+            <!-- Relays log in username 'relay' -->
+            <relay-password>c0d3c8000</relay-password>
+
+
+            <!-- Admin logs in with the username given below -->
+            <admin-user>admin</admin-user>
+            <admin-password>c0d3c8000</admin-password>
+        </authentication>
+
+
+        <!-- set the mountpoint for a shoutcast source to use, the default if not
+             specified is /stream but you can change it here if an alternative is
+             wanted or an extension is required
+        <shoutcast-mount>/live.nsv</shoutcast-mount>
+        -->
+
+
+        <!-- Uncomment this if you want directory listings -->
+        <!--
+        <directory>
+            <yp-url-timeout>15</yp-url-timeout>
+            <yp-url>http://dir.xiph.org/cgi-bin/yp-cgi</yp-url>
+        </directory>
+         -->
+
+
+        <!-- This is the hostname other people will use to connect to your server.
+        It affects mainly the urls generated by Icecast for playlists and yp
+        listings. -->
+        <hostname>localhost</hostname>
+
+
+        <!-- You may have multiple <listener> elements -->
+        <listen-socket>
+            <port>8000</port>
+            <!-- <bind-address>127.0.0.1</bind-address> -->
+            <!-- <shoutcast-mount>/stream</shoutcast-mount> -->
+        </listen-socket>
+        <!--
+        <listen-socket>
+            <port>8001</port>
+        </listen-socket>
+        -->
+
+
+        <!--<master-server>127.0.0.1</master-server>-->
+        <!--<master-server-port>8001</master-server-port>-->
+        <!--<master-update-interval>120</master-update-interval>-->
+        <!--<master-password>hackme</master-password>-->
+
+
+        <!-- setting this makes all relays on-demand unless overridden, this is
+             useful for master relays which do not have <relay> definitions here.
+             The default is 0 -->
+        <!--<relays-on-demand>1</relays-on-demand>-->
+
+
+        <!--
+        <relay>
+            <server>127.0.0.1</server>
+            <port>8001</port>
+            <mount>/example.ogg</mount>
+            <local-mount>/different.ogg</local-mount>
+            <on-demand>0</on-demand>
+
+
+            <relay-shoutcast-metadata>0</relay-shoutcast-metadata>
+        </relay>
+        -->
+
+
+        <!-- Only define a <mount> section if you want to use advanced options,
+             like alternative usernames or passwords
+        <mount>
+            <mount-name>/example-complex.ogg</mount-name>
+
+
+            <username>othersource</username>
+            <password>hackmemore</password>
+
+
+            <max-listeners>1</max-listeners>
+            <dump-file>/tmp/dump-example1.ogg</dump-file>
+            <burst-size>65536</burst-size>
+            <fallback-mount>/example2.ogg</fallback-mount>
+            <fallback-override>1</fallback-override>
+            <fallback-when-full>1</fallback-when-full>
+            <intro>/example_intro.ogg</intro>
+            <hidden>1</hidden>
+            <no-yp>1</no-yp>
+            <authentication type="htpasswd">
+                    <option name="filename" value="myauth"/>
+                    <option name="allow_duplicate_users" value="0"/>
+            </authentication>
+            <on-connect>/home/icecast/bin/stream-start</on-connect>
+            <on-disconnect>/home/icecast/bin/stream-stop</on-disconnect>
+        </mount>
+
+
+        <mount>
+            <mount-name>/auth_example.ogg</mount-name>
+            <authentication type="url">
+                <option name="mount_add"           value="http://myauthserver.net/notify_mount.php"/>
+                <option name="mount_remove"        value="http://myauthserver.net/notify_mount.php"/>
+                <option name="listener_add"        value="http://myauthserver.net/notify_listener.php"/>
+                <option name="listener_remove" value="http://myauthserver.net/notify_listener.php"/>
+            </authentication>
+        </mount>
+
+
+        -->
+
+
+        <fileserve>1</fileserve>
+
+
+        <paths>
+                    <!-- basedir is only used if chroot is enabled -->
+            <basedir>/usr/share/icecast2</basedir>
+
+
+            <!-- Note that if <chroot> is turned on below, these paths must both
+                 be relative to the new root, not the original root -->
+            <logdir>/var/log/icecast2</logdir>
+            <webroot>/usr/share/icecast2/web</webroot>
+            <adminroot>/usr/share/icecast2/admin</adminroot>
+            <!-- <pidfile>/usr/share/icecast2/icecast.pid</pidfile> -->
+
+
+            <!-- Aliases: treat requests for 'source' path as being for 'dest' path
+                 May be made specific to a port or bound address using the "port"
+                 and "bind-address" attributes.
+              -->
+            <!--
+            <alias source="/foo" destination="/bar"/>
+              -->
+            <!-- Aliases: can also be used for simple redirections as well,
+                 this example will redirect all requests for http://server:port/ to
+                 the status page
+              -->
+            <alias source="/" destination="/status.xsl"/>
+        </paths>
+
+
+        <logging>
+            <accesslog>access.log</accesslog>
+            <errorlog>error.log</errorlog>
+            <!-- <playlistlog>playlist.log</playlistlog> -->
+            <loglevel>3</loglevel> <!-- 4 Debug, 3 Info, 2 Warn, 1 Error -->
+            <logsize>10000</logsize> <!-- Max size of a logfile -->
+            <!-- If logarchive is enabled (1), then when logsize is reached
+                 the logfile will be moved to [error|access|playlist].log.DATESTAMP,
+                 otherwise it will be moved to [error|access|playlist].log.old.
+                 Default is non-archive mode (i.e. overwrite)
+            -->
+            <!-- <logarchive>1</logarchive> -->
+        </logging>
+
+
+        <security>
+            <chroot>0</chroot>
+            <!--
+            <changeowner>
+                <user>nobody</user>
+                <group>nogroup</group>
+            </changeowner>
+            -->
+        </security>
+</icecast>
+
+
+
+
+Além disso também é necessário acessar o arquivo /etc/default/icecast2. Através de sudo vim /etc/default/icecast2 e alterar o parâmetro ENABLE=false em ENABLE=true. 
+No arquivo /etc/default/icecast2 é notável algo importante, o user é icecast2 e o grupo é icecast. 
+
+
+
+
+Configuração do Darkice
+
+
+        Para configurar o darkice é preciso seguir o exemplo do arquivo darkice.cfg, que se encontra no diretório: /usr/share/doc/darkice/examples/. E então basta editá-lo.
+            Observa-se que nesse arquivo exemplo encontra-se também como configurar o darkice quando o servidor é o icecast2, icecast e o shoutcast. O servidor de interesse, que será utilizado, é o icecast2. Portanto, pode-se ignorar as outras configurações de servidor. 
+Esse arquivo .cfg é responsável pela configuração de 3 seções. Uma seção geral, que determina por quanto tempo a rádio permanecerá no ar, por exemplo. Ainda tem a seção de input, que especifica para o darkice quais são os inputs que devem ser lidos, como o do dispositivo de audio, sampleRate, channels, e outros. E também há a seção de configuração do servidor, que já foi mencionada. 
+O arquivo exemplo é mostrado a seguir, com partes em destaque, que devem ser alteradas e sem os servidores que não são úteis.
+
+
+Exemplo:
+
+
+# sample DarkIce configuration file, edit for your needs before using
+# see the darkice.cfg man page for details
+
+
+# this section describes general aspects of the live streaming session
+[general]
+duration            = 60           # duration of encoding, in seconds. 0 means forever 
+bufferSecs          = 5             # size of internal slip buffer, in seconds
+reconnect           = yes           # reconnect to the server(s) if disconnected
+
+
+# this section describes the audio input that will be streamed
+[input]
+device              = /dev/dsp  # OSS DSP soundcard device for the audio input
+sampleRate          = 22050         # sample rate in Hz. try 11025, 22050 or 44100
+bitsPerSample   = 16            # bits per sample. try 16
+channel             = 2             # channels. 1 = mono, 2 = stereo
+
+
+# this section describes a streaming connection to an IceCast2 server
+# there may be up to 8 of these sections, named [icecast2-0] ... [icecast2-7]
+# these can be mixed with [icecast-x] and [shoutcast-x] sections
+[icecast2-0]
+bitrateMode         = abr           # average bit rate
+format              = vorbis        # format of the stream: ogg vorbis
+bitrate             = 96            # bitrate of the stream sent to the server
+server              = yp.yourserver.com
+                                # host name of the server
+port                = 8000          # port of the IceCast2 server, usually 8000
+password            = hackme        # source password to the IceCast2 server
+mountPoint          = st2.opus     # mount point of this stream on the IceCast2 server
+name                = DarkIce trial (nome da radio)
+                                # name of the stream
+description         = This is only a trial
+                                # description of the stream
+url                 = http://www.yourserver.com
+                                # URL related to the stream
+genre               = my own        # genre of the stream
+public              = yes           # advertise this stream?
+localDumpFile   = dump.ogg  # local dump file 
+
+
+Na configuração, zero significa que a rádio fica para sempre ligada. 
+        O device deve ser substituído por hw: 1,0 (cartão de saída do usb é 1 e o device é 0), deve ser especificado o valor do cartão e do dispositivo de entrada de áudio que virará sinal de stream. Para conferir qual é o dispostivo e cartão de saída utilizado basta verificar em sudo aplay -l ou sudo arecord -l.
+        O dado sampleRate deve ser 441000, um padrão da rádio, a máxima possível. 
+        A saber que bitrate é o tamanho em Kb do arquivo, quanto menor o valor, menor a banda ocupada e 192 é um bitrate suficiente. 
+        O dado format é o formato do arquivo gerado, pode ser mp3, vorbis, entre outros. 
+        O campo Server é o nome do servidor do seu host, o nome utilizado aqui é ‘localhost’. Pois o server utilizado deve ser o mesmo do icecast. 
+        O campo mountPoint é o ponto de montagem, deve ser alterado.
+        O ‘dumpFile’ é um arquivo de áudio, em caso de queda na rádio, ele deve ser transmitido. 
+
+
+        A partir disso deve-se então copiar o arquivo exemplo a ser editado.
+Como copiar?? Entre no /etc e faça:
+sudo cp /usr/share/doc/darkice/examples/darkice.cfg darkice.cfg
+
+
+E então deve-se alterar os campos pertinentes. O arquivo darkice.cfg, presente no diretório /etc, deve ser similar ao que se segue abaixo. 
+
+
+Com tais informações e arquivo exemplo, o darkice.cfg criado no /etc deverá ser assim:
+
+darkice.cfg:
+
+# sample DarkIce configuration file, edit for your needs before using
+# see the darkice.cfg man page for details
+
+
+# this section describes general aspects of the live streaming session
+[general]
+duration            = 0            # duration of encoding, in seconds. 0 means forever
+bufferSecs          = 5             # size of internal slip buffer, in seconds
+reconnect           = yes           # reconnect to the server(s) if disconnected
+
+
+# this section describes the audio input that will be streamed
+[input]
+device              = hw: 1,0   # OSS DSP soundcard device for the audio input
+sampleRate          = 44100         # sample rate in Hz. try 11025, 22050 or 44100
+bitsPerSample   = 16            # bits per sample. try 16
+channel             = 2             # channels. 1 = mono, 2 = stereo
+
+
+# this section describes a streaming connection to an IceCast2 server
+# there may be up to 8 of these sections, named [icecast2-0] ... [icecast2-7]
+# these can be mixed with [icecast-x] and [shoutcast-x] sections
+[icecast2-0]
+bitrateMode         = abr           # average bit rate
+format              = vorbis        # format of the stream: ogg vorbis
+bitrate             = 192           # bitrate of the stream sent to the server
+server              = localhost # host name of the server
+port                = 8000          # port of the IceCast2 server, usually 8000
+password            = c0d3c8000 # source password to the IceCast2 server
+mountPoint          = st2.opus  # mount point of this stream on the IceCast2 server
+name                = Rádio UFMG Educativa
+                                # name of the stream
+description         = Programação da Rádio UFMG Educativa
+                                # description of the stream
+url                 = http://www.ufmg.br/radio
+                                # URL related to the stream
+genre               = vários        # genre of the stream
+public              = yes           # advertise this stream?
+localDumpFile   = dump.ogg  # local dump file
+
+
+        É importante conferir a permissão de usuário do darkice.cfg. Esta deve ser alterada, caso seja root,  para o usuario comum (radiola). Para conferir a permissão do arquivo, dentro do diretório que este se encontra use o comando: ls -la. 
+
+
+Muda-se a permissão de usuário de um arquivo através de:
+chown nome_user <arquivo>
+
+
+Ou seja,
+chown radiola darkice.cfg
+
+
+Se fosse pasta seria:
+
+chown nome_user -R <diretório>
+
+
+        Para mudar tanto a permissão de usuário quanto do grupo de ua pasta, basta fazer:
+
+
+sudo chown -R nomeuser:nomegrupo /diretório
+
+
+É claro que deve ser alterado o ponto de montagem e outras características que poderão mudar com o tempo ou com o computador (como o ip, a senha, o ponto de montagem).
+Também deve-se conferir no etc/init.d se há o arquivo darkice e icecast2 responsáveis pela inicialização de ambos quando o ubuntu se inicia.
+
+
+
+
+
+
+Icecast e Darkice - Execução, servidor online e inicialização com o sistema
+
+
+        Para executar o icecast2, é preciso que a pasta /var/log/icecast2 e todos os arquivos da mesma, tenham como usuário icecast2 e grupo icecast. Para isso faz-se:
+
+sudo chown icecast2:icecast -r /var/log/icecast2
+
+        Vale ressaltar que /etc/icecast2/icecast.xml tem como usuário e grupo root. 
+        Para rodar o icecast2 e o darkice é necessário executar ambos em background. Para rodar em background faz-se assim: 
+
+
+nohup [COMANDO] &
+
+
+O primeiro comando é para iniciar o icecast 2: sudo service icecast2 start
+
+
+         Para roda-lo em background, portanto faz-se: 
+
+
+nohup sudo service icecast2 start &
+
+
+
+
+O segundo comando é para iniciar o darkice, sudo darkice. Portanto, para roda-lo em background:
+
+nohup sudo darkice -c /etc/darkice.cfg &
+
+
+
+
+Foi criado um script (radio.sh) com esses comandos, este se tornou executável através de chmod +x nomedoarquivo. Foi dada permissão de leitura e escrita a ele através de chmod 755. Então para iniciar o icecast2 e o darkice basta fazer: /etc/init.d/nomedoarquivo start.
+        
+De forma mais clara, o passo a passo segue abaixo:
+
+        Criação do arquivo:
+
+
+#!/bin/bash
+
+
+nohup sudo service icecast2 start &
+
+
+nohup sudo darkice -c /etc/darkice.cfg &
+
+
+
+
+Chamei-o de radio.sh. Portanto, para inicia-lo o comando é:
+
+/etc/init.d/radio.sh start ou ./radio.sg start dentro da pasta /etc/init.d
+(com sudo)
+Verifique se deu certo entrando na controladora. 
+
+
+
+
+
+
+Para o icecast2 e o darkice iniciarem com o ubuntu é necessário habilitar sua inicialização através do comando update-rc.d. É preciso que os arquivos darkice e icecast2, além do script radio.sh, inicializem com o sistema.
+
+
+Portanto, faz-se:
+
+
+sudo update-rc.d icecast2 defaults
+sudo update-rc.d darkice defaults
+sudo update-rc.d radio..sh defaults
+
+
+Curiosidade
+
+
+Como matar um processo no Ubuntu?
+
+        Através do comando top, verifique o número do processo em execução.
+Então, basta fazer sudo kill <número do processo>
+
+
+
+
+Problema de mute quando se muda da st1 para st2
+
+
+        Havia um problema na controladora que ocorria quando se mudava de máquina transmissora (da st1 para st2 ou vice-versa). Isso acontecia devido a um erro de código no controlador.cpp presente na Leo (workstation). Inicialmente, o programa foi pensado para o caso de ser usada duas placas de sons diferentes. 
+
+
+Quando se troca de servidor manualmente no controlador esse código aqui é executado:
+
+
+else if(CO->force)
+   {
+     flag = ONLINE_;
+     CO->unmute_main_mute_aux();
+     CO->play(CO->manually_selected_server);
+     CO->force = false;
+     std::string logmessage = "server changed manually to: " + CO->manually_selected_server.getStreamLink();
+     //lastserve não funciona devido �|  troca por prioridade
+     CO->controller_log("controller", logmessage);
+   }
+
+
+Repare que o método unmute_main_mute_aux() é chamado. Ela muta a placa de som principal do controlador e unmuta a reserva. Essa função foi feita para se poder usar duas placas de sons diferentes com o controlador como redundância, mas não estamos utilizando essa funcionalidade.
+Repare que no arquivo de configuração do controlador (/etc/controlador.cfg) a placa principal e a reserva estão configuradas como a mesma placa de som.
+
+
+#SOUND CARD CONFIGURATION
+main-card-driver=alsa
+main-card-number=1
+main-card-pcm=0
+main-card-sub-device=0
+main-card-device-name=hw:1,0
+main-card-controls=PCM
+
+
+enable-card-switching=0
+
+
+aux-card-driver=alsa
+aux-card-number=1
+aux-card-pcm=0
+aux-card-sub-device=0
+aux-card-device-name=hw:1,0
+aux-card-controls=PCM
+
+
+
+
+Isso estava fazendo com que a função unmute_main_mute_aux() desse unmute na placa principal, mas logo em depois mutava ela mesmo outra vez, porque as placas principal e reserva estavam configuradas como a mesma placa:
+
+
+void controlador::unmute_main_mute_aux()
+{
+ if(main_card.get_driver() == "alsa")
+ {
+   for(int i = 0; i < main_card.get_controls_size(); i++)
+     sistema.unmute_card(main_card.get_number(), main_card.get_control(i));
+ }
+ if(aux_card.get_driver() == "alsa")
+ {
+   for(int i = 0; i < aux_card.get_controls_size(); i++)
+     sistema.mute_card(aux_card.get_number(), aux_card.get_control(i));
+ }
+ main_card_on = true;   
+}
+
+
+O que foi feito para arrumar o bug foi colocar uma trava para não mutar a placa reserva se ela for a mesma que a principal. Mais uma condição a ser verificada pelo if:
+
+
+void controlador::unmute_main_mute_aux()
+{
+ if(main_card.get_driver() == "alsa")
+ {
+   for(int i = 0; i < main_card.get_controls_size(); i++)
+     sistema.unmute_card(main_card.get_number(), main_card.get_control(i));
+ }
+ if(aux_card.get_number() != main_card.get_number() && aux_card.get_driver() == "alsa")
+ {
+   for(int i = 0; i < aux_card.get_controls_size(); i++)
+     sistema.mute_card(aux_card.get_number(), aux_card.get_control(i));
+ }
+ main_card_on = true;   
+}
+
+
+Isso solucionou completamente o problema.
+
+
+Considerações Finais
+
+
+        Após a conclusão do processo de configuração da st2 para streaming de áudio através do darkice e icecast2, esta máquina estará na controladora, com uma prioridade menor que a st1. Em caso de perda da st1, a st2 que manterá a rádio no ar.
+
+
+Referências
+
+
+https://www.vivaolinux.com.br/artigo/Configurar-radio-online-com-Icecast2-+-Darkice?pagina=3
+
+
+http://rberaldo.com.br/executando-scripts-na-inicializacao-do-debianubuntu/
+http://sourcebrasil.org/tutoriais/visualizar/linux--como-imprimir-data-e-horario-atraves-da-linha-de-comando.html (comando para mostrar a hora)
+
+
+https://blog.ufba.br/radiofaced/?page_id=302
